@@ -264,6 +264,7 @@
 				DEVELOPMENT_TEAM = 59EFNSJ7X2;
 				INFOPLIST_FILE = MonitorSimulator/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savelichalex.MonitorSimulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -277,6 +278,7 @@
 				DEVELOPMENT_TEAM = 59EFNSJ7X2;
 				INFOPLIST_FILE = MonitorSimulator/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.savelichalex.MonitorSimulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -301,6 +303,7 @@
 				84A7B2E01F5D5F65000FC30B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

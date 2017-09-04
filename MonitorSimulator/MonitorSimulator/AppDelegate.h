@@ -10,6 +10,8 @@
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
+@property (assign) int shm;
+@property (assign) char* addr;
 
 @end
 
