@@ -13,10 +13,13 @@
 #include <sys/types.h>
 #include <errno.h>
 #import "AppDelegate.h"
+#import "DisplayView.h"
 
 #define DISPLAY_FRAME_BUFFER "simulator_frame_buffer"
+#define DISPLAY_X_SIZE 128
+#define DISPLAY_Y_SIZE 128
 // 128x128 - dimension, then divide it by off_t size and apply by 8 - one pixel size
-#define DISPLAY_FRAME_BUFFER_SIZE 128 * 128 / sizeof(off_t) * 8
+#define DISPLAY_FRAME_BUFFER_SIZE DISPLAY_X_SIZE * DISPLAY_Y_SIZE / sizeof(off_t) * 8
 
 @interface AppDelegate ()
 
@@ -44,7 +47,7 @@
     
     self.shm = shm;
     
-    addr = mmap(0, DISPLAY_FRAME_BUFFER_SIZE, PROT_READ, MAP_SHARED, shm, 0);
+    addr = mmap(0, DISPLAY_FRAME_BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
     
     if (addr == (char*)-1) {
         int errsv = errno;
@@ -57,7 +60,23 @@
     
     self.addr = addr;
     
+    int x, y;
+    for (y = 0; y < DISPLAY_X_SIZE; y = y + 1) {
+        for (x = 1; x <= DISPLAY_Y_SIZE; x = x + 1) {
+            unsigned char cell = 0;
+            if (y % 2 == 0 && x % 2 != 0) {
+                cell = 255;
+            }
+            if (y % 2 != 0 && x % 2 == 0) {
+                cell = 255;
+            }
+            
+            addr[y + x] = cell;
+        }
+    }
     
+    DisplayView *dv = [[NSApplication sharedApplication] mainWindow].contentViewController.view;
+    dv.displayBuffer = addr;
 }
 
 

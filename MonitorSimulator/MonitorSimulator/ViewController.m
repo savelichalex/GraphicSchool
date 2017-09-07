@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "DisplayView.h"
 
 @implementation ViewController
 
@@ -14,6 +15,8 @@
     [super viewDidLoad];
 
     // Do any additional setup after loading the view.
+    self.view = [[DisplayView alloc] init];
+    [self.view setFrame:NSMakeRect(0.f, 0.f, 480.f, 480.f)];
 }
 
 
