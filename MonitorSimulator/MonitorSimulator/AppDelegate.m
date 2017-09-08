@@ -31,6 +31,9 @@
     int shm;
     char* addr;
     
+    // Bug with ftrancate in Mac OS,
+    // this is cause when shm not closed in app (for i.e. crashed)
+    shm_unlink(DISPLAY_FRAME_BUFFER);
     if ( (shm = shm_open(DISPLAY_FRAME_BUFFER, O_CREAT|O_RDWR, 0777)) == -1) {
         int errsv = errno;
         NSLog(@"Couldn't open frame buffer in shm_open, %i", errsv);
