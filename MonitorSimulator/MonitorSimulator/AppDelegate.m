@@ -12,10 +12,13 @@
 #include <sys/fcntl.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <semaphore.h>
 #import "AppDelegate.h"
 #import "DisplayView.h"
 
 #define DISPLAY_FRAME_BUFFER "simulator_frame_buffer"
+#define DISPLAY_FRAME_BUFFER_WRITE_SEM "simulator_frame_buffer_ws"
+#define DISPLAY_FRAME_BUFFER_READ_SEM "simulator_frame_buffer_rs"
 #define DISPLAY_X_SIZE 128
 #define DISPLAY_Y_SIZE 128
 // 128x128 - dimension, then divide it by off_t size and apply by 8 - one pixel size
@@ -29,7 +32,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     int shm;
-    char* addr;
+    sem_t *write_sem, *read_sem;
     
     // Bug with ftrancate in Mac OS,
     // this is cause when shm not closed in app (for i.e. crashed)
@@ -50,8 +53,68 @@
     
     self.shm = shm;
     
-    addr = mmap(0, DISPLAY_FRAME_BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
+    sem_unlink(DISPLAY_FRAME_BUFFER_WRITE_SEM);
+    if ((write_sem = sem_open(DISPLAY_FRAME_BUFFER_WRITE_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
+        int errsv = errno;
+        NSLog(@"Couldn't open write semaphor, %i", errsv);
+        
+        return;
+    }
     
+    sem_unlink(DISPLAY_FRAME_BUFFER_READ_SEM);
+    if ((read_sem = sem_open(DISPLAY_FRAME_BUFFER_READ_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
+        int errsv = errno;
+        NSLog(@"Couldn't open read semaphor, %i", errsv);
+        
+        return;
+    }
+    
+    [self mapDisplayBuffer];
+    int x, y;
+    for (y = 0; y < DISPLAY_X_SIZE; y = y + 1) {
+        for (x = 1; x <= DISPLAY_Y_SIZE; x = x + 1) {
+            unsigned char cell = 255;
+            
+            self.addr[y + x] = cell;
+        }
+    }
+    // [self releaseDisplayBuffer];
+    
+    DisplayView *dv = (DisplayView*)[[NSApplication sharedApplication] mainWindow].contentViewController.view;
+    
+    while (1) {
+        if (sem_post(write_sem) == -1) {
+            NSLog(@"Couldn't open post in semaphor");
+            return;
+        }
+        
+        // [self mapDisplayBuffer];
+        dv.displayBuffer = self.addr;
+        NSLog(
+              @"Update display buffer, %i, %i, %i",
+              (unsigned char)self.addr[3],
+              (unsigned char)self.addr[4],
+              (unsigned char)self.addr[5]
+        );
+        // [self releaseDisplayBuffer];
+        // [NSThread sleepForTimeInterval:1.f];
+        
+        if (sem_wait(read_sem) == -1) {
+            NSLog(@"error sem_wait");
+            return;
+        }
+    }
+}
+
+- (void)mapDisplayBuffer {
+    char* addr;
+    addr = mmap(0, DISPLAY_FRAME_BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, self.shm, 0);
+//    NSLog(
+//          @"Update display buffer, %i, %i, %i",
+//          (unsigned char)self.addr[3],
+//          (unsigned char)self.addr[4],
+//          (unsigned char)self.addr[5]
+//    );
     if (addr == (char*)-1) {
         int errsv = errno;
         NSLog(@"Couldn't open frame buffer in mmap, %i", errsv);
@@ -59,33 +122,19 @@
         return;
     }
     
-    NSLog(@"Openning success");
-    
     self.addr = addr;
-    
-    int x, y;
-    for (y = 0; y < DISPLAY_X_SIZE; y = y + 1) {
-        for (x = 1; x <= DISPLAY_Y_SIZE; x = x + 1) {
-            unsigned char cell = 0;
-            if (y % 2 == 0 && x % 2 != 0) {
-                cell = 255;
-            }
-            if (y % 2 != 0 && x % 2 == 0) {
-                cell = 255;
-            }
-            
-            addr[y + x] = cell;
-        }
-    }
-    
-    DisplayView *dv = [[NSApplication sharedApplication] mainWindow].contentViewController.view;
-    dv.displayBuffer = addr;
 }
 
+- (void)releaseDisplayBuffer {
+    munmap(self.addr, DISPLAY_FRAME_BUFFER_SIZE);
+}
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
-    munmap(self.addr, DISPLAY_FRAME_BUFFER_SIZE);
+    [self releaseDisplayBuffer];
+    // munmap(self.addr, DISPLAY_FRAME_BUFFER_SIZE);
     shm_unlink(DISPLAY_FRAME_BUFFER);
+    sem_unlink(DISPLAY_FRAME_BUFFER_WRITE_SEM);
+    sem_unlink(DISPLAY_FRAME_BUFFER_READ_SEM);
 }
 
 
