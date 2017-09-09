@@ -35,11 +35,10 @@
     }
     
     int x, y;
-    for (y = 0; y < DISPLAY_X_SIZE; y = y + 1) {
-        for (x = 1; x <= DISPLAY_Y_SIZE; x = x + 1) {
-            unsigned char cell = _displayBuffer[y + x];
+    for (y = 0; y < DISPLAY_Y_SIZE; y = y + 1) {
+        for (x = 1; x <= DISPLAY_X_SIZE; x = x + 1) {
+            unsigned char cell = _displayBuffer[(y * DISPLAY_Y_SIZE) + x];
             CGFloat color = (CGFloat)cell;
-            NSLog(@"cell: %f, %i, %i, %i, %i", color, (x - 1) * 4, (x - 1) * 4, y * 4, y * 4);
             [[NSColor colorWithCalibratedRed:color green:color blue:color alpha:1.0] set];
             NSRectFill(NSMakeRect((x - 1) * 4, y * 4, (x - 1) * 4 + 4, y * 4 + 4));
         }

@@ -14,7 +14,7 @@
 #define DISPLAY_X_SIZE 128
 #define DISPLAY_Y_SIZE 128
 // 128x128 - dimension, then divide it by off_t size and apply by 8 - one pixel size
-#define DISPLAY_FRAME_BUFFER_SIZE DISPLAY_X_SIZE * DISPLAY_Y_SIZE / sizeof(off_t) * 8
+#define DISPLAY_FRAME_BUFFER_SIZE DISPLAY_X_SIZE * DISPLAY_Y_SIZE / sizeof(off_t) * 8 + 1
 
 #define OPEN_FRAME_BUFFER_ERROR -1
 #define OPEN_FRAME_BUFFER_WITHOUT_ERROR 0
@@ -89,9 +89,7 @@ set_pixel(value x, value y, value val) {
 
   unsigned char converted_value = (unsigned char)_val;
 
-  printf("current value in memory[%i], %i", _x + _y, (unsigned char)shared_memory_addr[x + y]);
-  printf("value to write, %i", converted_value);
-  shared_memory_addr[x + y] = converted_value;
+  shared_memory_addr[_x + (_y * DISPLAY_Y_SIZE)] = converted_value;
 
   if (msync((void *)shared_memory_addr, DISPLAY_FRAME_BUFFER_SIZE, MS_SYNC) < 0) {
     printf("Failed to sync");

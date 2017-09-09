@@ -22,7 +22,7 @@
 #define DISPLAY_X_SIZE 128
 #define DISPLAY_Y_SIZE 128
 // 128x128 - dimension, then divide it by off_t size and apply by 8 - one pixel size
-#define DISPLAY_FRAME_BUFFER_SIZE DISPLAY_X_SIZE * DISPLAY_Y_SIZE / sizeof(off_t) * 8
+#define DISPLAY_FRAME_BUFFER_SIZE DISPLAY_X_SIZE * DISPLAY_Y_SIZE / sizeof(off_t) * 8 + 1
 
 @interface AppDelegate ()
 
@@ -71,50 +71,41 @@
     
     [self mapDisplayBuffer];
     int x, y;
-    for (y = 0; y < DISPLAY_X_SIZE; y = y + 1) {
-        for (x = 1; x <= DISPLAY_Y_SIZE; x = x + 1) {
+    for (y = 0; y < DISPLAY_Y_SIZE; y = y + 1) {
+        for (x = 1; x <= DISPLAY_X_SIZE; x = x + 1) {
             unsigned char cell = 255;
-            
-            self.addr[y + x] = cell;
+            NSLog(@"%i", (y * DISPLAY_Y_SIZE) + x);
+            self.addr[(y * DISPLAY_Y_SIZE) + x] = cell;
         }
     }
     // [self releaseDisplayBuffer];
     
     DisplayView *dv = (DisplayView*)[[NSApplication sharedApplication] mainWindow].contentViewController.view;
     
-    while (1) {
-        if (sem_post(write_sem) == -1) {
-            NSLog(@"Couldn't open post in semaphor");
-            return;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        while (1) {
+            if (sem_post(write_sem) == -1) {
+                NSLog(@"Couldn't open post in semaphor");
+                return;
+            }
+            
+            // [self mapDisplayBuffer];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                dv.displayBuffer = self.addr;
+            });
+            
+            if (sem_wait(read_sem) == -1) {
+                NSLog(@"error sem_wait");
+                return;
+            }
         }
-        
-        // [self mapDisplayBuffer];
-        dv.displayBuffer = self.addr;
-        NSLog(
-              @"Update display buffer, %i, %i, %i",
-              (unsigned char)self.addr[3],
-              (unsigned char)self.addr[4],
-              (unsigned char)self.addr[5]
-        );
-        // [self releaseDisplayBuffer];
-        // [NSThread sleepForTimeInterval:1.f];
-        
-        if (sem_wait(read_sem) == -1) {
-            NSLog(@"error sem_wait");
-            return;
-        }
-    }
+    });
 }
 
 - (void)mapDisplayBuffer {
     char* addr;
     addr = mmap(0, DISPLAY_FRAME_BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, self.shm, 0);
-//    NSLog(
-//          @"Update display buffer, %i, %i, %i",
-//          (unsigned char)self.addr[3],
-//          (unsigned char)self.addr[4],
-//          (unsigned char)self.addr[5]
-//    );
+
     if (addr == (char*)-1) {
         int errsv = errno;
         NSLog(@"Couldn't open frame buffer in mmap, %i", errsv);
