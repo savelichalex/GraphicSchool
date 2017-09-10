@@ -7,9 +7,9 @@
 #include <errno.h>
 #include <semaphore.h>
 #include <caml/mlvalues.h>
+#include <caml/fail.h>
 
 #define DISPLAY_FRAME_BUFFER "simulator_frame_buffer"
-#define DISPLAY_FRAME_BUFFER_WRITE_SEM "simulator_frame_buffer_ws"
 #define DISPLAY_FRAME_BUFFER_READ_SEM "simulator_frame_buffer_rs"
 #define DISPLAY_X_SIZE 128
 #define DISPLAY_Y_SIZE 128
@@ -21,7 +21,7 @@
 
 int shared_memory;
 char* shared_memory_addr;
-sem_t *write_sem, *read_sem;
+sem_t *read_sem;
 
 int error = OPEN_FRAME_BUFFER_ERROR;
 
@@ -32,6 +32,7 @@ open_display_buffer(value unit) {
   if (shared_memory < 0) {
     int errsv = errno;
     printf("Error in shm_open: %i", errsv);
+    caml_failwith("Error in shm_open");
 
     error = OPEN_FRAME_BUFFER_ERROR;
 
@@ -42,16 +43,9 @@ open_display_buffer(value unit) {
 
   if (shared_memory_addr == (char*)-1) {
     int errsv = errno;
-    printf("Error in shm_open: %i", errsv);
+    printf("Error in mmap: %i", errsv);
+    caml_failwith("Error in mmap");
 
-    error = OPEN_FRAME_BUFFER_ERROR;
-
-    return Val_unit;
-  }
-
-  if ((write_sem = sem_open(DISPLAY_FRAME_BUFFER_WRITE_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
-    int errsv = errno;
-    printf("Couldn't open write semaphor, %i", errsv);
     error = OPEN_FRAME_BUFFER_ERROR;
 
     return Val_unit;
@@ -60,12 +54,16 @@ open_display_buffer(value unit) {
   if ((read_sem = sem_open(DISPLAY_FRAME_BUFFER_READ_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
     int errsv = errno;
     printf("Couldn't open read semaphor, %i", errsv);
+    caml_failwith("Couldn't open read semaphor");
+
     error = OPEN_FRAME_BUFFER_ERROR;
 
     return Val_unit;
   }
 
   error = OPEN_FRAME_BUFFER_WITHOUT_ERROR;
+
+  printf("Opened\n");
 
   return Val_unit;
 }
@@ -79,29 +77,27 @@ set_pixel(value x, value y, value val) {
 
   if (error == OPEN_FRAME_BUFFER_ERROR) {
     printf("Try to write in not oppened display buffer");
-    return Val_unit;
-  }
-
-  if (sem_wait(write_sem) == -1) {
-    printf("error sem_wait");
+    caml_failwith("Try to write in not oppened display buffer");
     return Val_unit;
   }
 
   unsigned char converted_value = (unsigned char)_val;
-
+  printf("Write in position x: %i, y: %i, value: %i\n", _x, _y, _val);
   shared_memory_addr[_x + (_y * DISPLAY_Y_SIZE)] = converted_value;
 
   if (msync((void *)shared_memory_addr, DISPLAY_FRAME_BUFFER_SIZE, MS_SYNC) < 0) {
     printf("Failed to sync");
+    caml_failwith("Failed to sync");
     exit(1);
   }
 
   if (sem_post(read_sem) == -1) {
     printf("error sem_post");
+    caml_failwith("error sem_post");
     return Val_unit;
   }
 
-  munmap(shared_memory_addr, DISPLAY_FRAME_BUFFER_SIZE);
+  /* munmap(shared_memory_addr, DISPLAY_FRAME_BUFFER_SIZE); */
 
   return Val_unit;
 }

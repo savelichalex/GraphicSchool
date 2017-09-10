@@ -17,7 +17,6 @@
 #import "DisplayView.h"
 
 #define DISPLAY_FRAME_BUFFER "simulator_frame_buffer"
-#define DISPLAY_FRAME_BUFFER_WRITE_SEM "simulator_frame_buffer_ws"
 #define DISPLAY_FRAME_BUFFER_READ_SEM "simulator_frame_buffer_rs"
 #define DISPLAY_X_SIZE 128
 #define DISPLAY_Y_SIZE 128
@@ -32,7 +31,7 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     int shm;
-    sem_t *write_sem, *read_sem;
+    sem_t *read_sem;
     
     // Bug with ftrancate in Mac OS,
     // this is cause when shm not closed in app (for i.e. crashed)
@@ -53,14 +52,6 @@
     
     self.shm = shm;
     
-    sem_unlink(DISPLAY_FRAME_BUFFER_WRITE_SEM);
-    if ((write_sem = sem_open(DISPLAY_FRAME_BUFFER_WRITE_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
-        int errsv = errno;
-        NSLog(@"Couldn't open write semaphor, %i", errsv);
-        
-        return;
-    }
-    
     sem_unlink(DISPLAY_FRAME_BUFFER_READ_SEM);
     if ((read_sem = sem_open(DISPLAY_FRAME_BUFFER_READ_SEM, O_CREAT, 0777, 0)) == SEM_FAILED) {
         int errsv = errno;
@@ -74,7 +65,6 @@
     for (y = 0; y < DISPLAY_Y_SIZE; y = y + 1) {
         for (x = 1; x <= DISPLAY_X_SIZE; x = x + 1) {
             unsigned char cell = 255;
-            NSLog(@"%i", (y * DISPLAY_Y_SIZE) + x);
             self.addr[(y * DISPLAY_Y_SIZE) + x] = cell;
         }
     }
@@ -84,11 +74,6 @@
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         while (1) {
-            if (sem_post(write_sem) == -1) {
-                NSLog(@"Couldn't open post in semaphor");
-                return;
-            }
-            
             // [self mapDisplayBuffer];
             dispatch_async(dispatch_get_main_queue(), ^{
                 dv.displayBuffer = self.addr;
@@ -124,7 +109,6 @@
     [self releaseDisplayBuffer];
     // munmap(self.addr, DISPLAY_FRAME_BUFFER_SIZE);
     shm_unlink(DISPLAY_FRAME_BUFFER);
-    sem_unlink(DISPLAY_FRAME_BUFFER_WRITE_SEM);
     sem_unlink(DISPLAY_FRAME_BUFFER_READ_SEM);
 }
 
