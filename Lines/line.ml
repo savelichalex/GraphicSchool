@@ -8,7 +8,7 @@ let get_pixel_point a b =
   float_of_int a +. b |> floor |> truncate
 
 let rec draw_line_DDA x y x_inc y_inc steps count =
-  if count == steps then ()
+  if count > steps then ()
   else begin
     Pixellib.set_pixel_exp x y 0;
     draw_line_DDA
@@ -26,4 +26,5 @@ let line_DDA ~start:start ~close:close =
         draw_line_DDA start.x start.y x_increment y_increment steps 0
 
 let () =
-  line_DDA {x=0; y=0} {x=5;y=5}
+  Pixellib.open_display_buffer_exp ();
+  line_DDA {x=1; y=1} {x=10;y=5}
