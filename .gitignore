@@ -1,0 +1,5 @@
+*.opt
+*.cmi
+*.cmx
+*.cmt
+*.o

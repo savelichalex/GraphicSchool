@@ -15,4 +15,4 @@ line: pixellib.cmx pixellib_stubs.o line.cmx
 	ocamlopt -o lines.opt -I Pixellib/ -I Lines/ pixellib.cmx pixellib_stubs.o line.cmx
 
 clean:
-	find . \( -name "*.o" -o -name "*.cmi" -o -name "*.cmx" \) -type f -delete && rm *.o
+	find . \( -name "*.o" -o -name "*.cmi" -o -name "*.cmx" \) -type f -delete && rm *.{o,opt}
