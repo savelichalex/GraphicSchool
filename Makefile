@@ -14,8 +14,8 @@ dda.cmx:Lines/dda.ml
 brezenham.cmx: Lines/brezenham.ml
 	ocamlopt -c $< -I Lines/ -I Pixellib/ -bin-annot
 
-line.cmx:
-	ocamlopt -c Lines/line.ml -I Lines/ -I Pixellib/ -bin-annot
+line.cmx: Lines/line.ml
+	ocamlopt -c $< -I Lines/ -I Pixellib/ -bin-annot
 
 line: pixellib.cmx pixellib_stubs.o dda.cmx brezenham.cmx line.cmx
 	ocamlopt -o lines.opt -I Pixellib/ -I Lines/ pixellib.cmx pixellib_stubs.o dda.cmx brezenham.cmx line.cmx
