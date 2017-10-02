@@ -12,15 +12,15 @@ let draw_circle_points x_center y_center x y =
   Pixellib.set_pixel_exp (x_center - y) (y_center - x) 0
 
 let get_params x y p =
-  if (p < 0) then (y, p + (2 * x) + 1)
-  else (y - 1, 2 * (x - y) + 1)
+  if (p < 0) then (x, y, p + (2 * x) + 1)
+  else (x, y - 1, p + 2 * (x - (y - 1)) + 1)
 
 let rec draw_circle x y p x_center y_center =
-  if (x >= y) then ()
+  if (x > y) then ()
   else begin
       draw_circle_points x_center y_center x y;
-      let (next_y, next_p) = get_params x y p in
-      draw_circle (x + 1) next_y next_p x_center y_center
+      let (next_x, next_y, next_p) = get_params (x + 1) y p in
+      draw_circle next_x next_y next_p x_center y_center
     end
 
 let circle center radius =
