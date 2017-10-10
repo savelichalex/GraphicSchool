@@ -2,6 +2,8 @@ BUILD_DIR = build
 
 .PHONY: clean
 
+PIXELLIBOBJ = pixellib.cmx pixellib_stubs.o
+
 pixellib.cmx: Pixellib/pixellib.ml
 	ocamlopt -c $< -I Pixellib/ -bin-annot
 
@@ -23,8 +25,14 @@ line: pixellib.cmx pixellib_stubs.o dda.cmx brezenham.cmx line.cmx
 midpointCircle.cmx: Circle/midpointCircle.ml
 	ocamlopt -c $< -I Circle/ -I Pixellib/ -bin-annot
 
-circle: pixellib.cmx pixellib_stubs.o midpointCircle.cmx
-	ocamlopt -o circle.opt -I Pixellib/ -I Circle/ pixellib.cmx pixellib_stubs.o midpointCircle.cmx
+circle: $(PIXELLIBOBJ) midpointCircle.cmx
+	ocamlopt -o circle.opt -I Pixellib/ -I Circle/ $^
+
+midpointEllipse.cmx: Circle/midpointEllipse.ml
+	ocamlopt -c $< -I Circle/ -I Pixellib/ -bin-annot
+
+ellipse: $(PIXELLIBOBJ) midpointEllipse.cmx
+	ocamlopt -o $@ -I Pixellib/ -I Circle/ $^
 
 clean:
 	find . \( -name "*.o" -o -name "*.cmi" -o -name "*.cmx" \) -type f -delete && rm *.{o,opt}
