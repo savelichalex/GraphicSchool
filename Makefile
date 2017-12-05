@@ -34,5 +34,11 @@ midpointEllipse.cmx: Circle/midpointEllipse.ml
 ellipse: $(PIXELLIBOBJ) midpointEllipse.cmx
 	ocamlopt -o $@ -I Pixellib/ -I Circle/ $^
 
+bezier.cmx: Curves/bezier.ml
+	ocamlopt -c $< -I Curves/ -I Pixellib/ -I Lines/ -bin-annot
+
+bezier: $(PIXELLIBOBJ) brezenham.cmx bezier.cmx
+	ocamlopt -o $@ -I Pixellib/ -I Lines/ -I Curves/ $^
+
 clean:
 	find . \( -name "*.o" -o -name "*.cmi" -o -name "*.cmx" \) -type f -delete && rm *.{o,opt}
